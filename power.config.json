@@ -1,0 +1,32 @@
+{
+  "version": "1.0",
+  "appId": null,
+  "appDisplayName": "PowerApp1",
+  "region": "prod",
+  "appType": "CodeApp",
+  "environmentId": "Default-fd1436be-e4ed-4ce8-b488-1982f36ac623",
+  "description": " ",
+  "buildPath": "./dist",
+  "buildEntryPoint": "index.html",
+  "localAppUrl": "http://localhost:3000",
+  "logoPath": "Default",
+  "connectionReferences": {
+    "84eed7ee-1818-4715-8e64-b6ae9db04265": {
+      "id": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+      "displayName": "SharePoint",
+      "dataSources": [
+        "data_checkin"
+      ],
+      "dataSets": {
+        "https://thadicodqm.sharepoint.com/sites/DataPortal": {
+          "dataSources": {
+            "data_checkin": {
+              "tableName": "626c04c1-1a11-42be-ba76-9d4cc36a2831"
+            }
+          }
+        }
+      }
+    }
+  },
+  "databaseReferences": {}
+}
