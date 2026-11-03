@@ -24,12 +24,14 @@ export const WorkItemsTable: React.FC<WorkItemsTableProps> = ({
     return items.filter((item) => {
       const idStr = String(item.field_0 ?? item.ID ?? '').toLowerCase();
       const titleStr = (item.Title || '').toLowerCase();
+      const phoneStr = (item.Phone || '').toLowerCase();
       const locationStr = (item.field_3 || '').toLowerCase();
       const noteStr = (item.field_4 || '').toLowerCase();
 
       return (
         idStr.includes(query) ||
         titleStr.includes(query) ||
+        phoneStr.includes(query) ||
         locationStr.includes(query) ||
         noteStr.includes(query)
       );
@@ -102,7 +104,7 @@ export const WorkItemsTable: React.FC<WorkItemsTableProps> = ({
           <input
             type="text"
             className="search-input"
-            placeholder="Search by name, ID, location..."
+            placeholder="Search by name, ID, phone, location..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
@@ -125,10 +127,11 @@ export const WorkItemsTable: React.FC<WorkItemsTableProps> = ({
           <thead>
             <tr>
               <th scope="col" style={{ width: '85px' }}>Id</th>
-              <th scope="col" style={{ minWidth: '220px' }}>Name</th>
+              <th scope="col" style={{ minWidth: '200px' }}>Name</th>
+              <th scope="col" style={{ minWidth: '150px' }}>Phone</th>
               <th scope="col" style={{ minWidth: '180px' }}>Check in</th>
               <th scope="col" style={{ minWidth: '180px' }}>Location</th>
-              <th scope="col" style={{ minWidth: '220px' }}>note</th>
+              <th scope="col" style={{ minWidth: '200px' }}>note</th>
               <th scope="col" style={{ width: '130px', textAlign: 'right' }}>Actions</th>
             </tr>
           </thead>
@@ -155,6 +158,32 @@ export const WorkItemsTable: React.FC<WorkItemsTableProps> = ({
                         <span className="item-title">{item.Title || '(Untitled)'}</span>
                       </div>
                     </div>
+                  </td>
+
+                  {/* Phone */}
+                  <td>
+                    {item.Phone ? (
+                      <div className="phone-cell">
+                        <svg
+                          className="cell-icon"
+                          width="13"
+                          height="13"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
+                        </svg>
+                        <a href={`tel:${item.Phone}`} className="phone-link">
+                          {item.Phone}
+                        </a>
+                      </div>
+                    ) : (
+                      <span className="cell-muted">—</span>
+                    )}
                   </td>
 
                   {/* Check in */}

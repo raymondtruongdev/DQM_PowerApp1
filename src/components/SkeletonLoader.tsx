@@ -13,10 +13,11 @@ export const SkeletonLoader: React.FC<SkeletonLoaderProps> = ({ rowCount = 5 }) 
         <thead>
           <tr>
             <th style={{ width: '85px' }}>Id</th>
-            <th style={{ minWidth: '220px' }}>Name</th>
+            <th style={{ minWidth: '200px' }}>Name</th>
+            <th style={{ minWidth: '150px' }}>Phone</th>
             <th style={{ minWidth: '180px' }}>Check in</th>
             <th style={{ minWidth: '180px' }}>Location</th>
-            <th style={{ minWidth: '220px' }}>note</th>
+            <th style={{ minWidth: '200px' }}>note</th>
             <th style={{ width: '130px', textAlign: 'right' }}>Actions</th>
           </tr>
         </thead>
@@ -37,6 +38,14 @@ export const SkeletonLoader: React.FC<SkeletonLoaderProps> = ({ rowCount = 5 }) 
                     style={{ width: `${100 + (index % 3) * 35}px` }}
                   />
                 </div>
+              </td>
+
+              {/* Phone */}
+              <td>
+                <div
+                  className="skeleton-shimmer skeleton-line"
+                  style={{ width: `${100 + (index % 2) * 15}px` }}
+                />
               </td>
 
               {/* Check in */}
@@ -62,7 +71,7 @@ export const SkeletonLoader: React.FC<SkeletonLoaderProps> = ({ rowCount = 5 }) 
               <td>
                 <div
                   className="skeleton-shimmer skeleton-line"
-                  style={{ width: `${140 + (index % 4) * 30}px` }}
+                  style={{ width: `${130 + (index % 4) * 30}px` }}
                 />
               </td>
 

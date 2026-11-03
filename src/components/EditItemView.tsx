@@ -49,6 +49,7 @@ export const EditItemView: React.FC<EditItemViewProps> = ({
   // Form state
   const [title, setTitle] = useState(item.Title ?? '');
   const [field0, setField0] = useState<string>(item.field_0 !== undefined ? String(item.field_0) : '');
+  const [phone, setPhone] = useState(item.Phone ?? '');
   const [field2, setField2] = useState<string>(isoToDatetimeLocal(item.field_2));
   const [field3, setField3] = useState(item.field_3 ?? '');
   const [field4, setField4] = useState(item.field_4 ?? '');
@@ -57,6 +58,7 @@ export const EditItemView: React.FC<EditItemViewProps> = ({
   const isDirty =
     title !== (item.Title ?? '') ||
     field0 !== (item.field_0 !== undefined ? String(item.field_0) : '') ||
+    phone !== (item.Phone ?? '') ||
     field2 !== isoToDatetimeLocal(item.field_2) ||
     field3 !== (item.field_3 ?? '') ||
     field4 !== (item.field_4 ?? '');
@@ -65,6 +67,7 @@ export const EditItemView: React.FC<EditItemViewProps> = ({
   const handleDiscard = () => {
     setTitle(item.Title ?? '');
     setField0(item.field_0 !== undefined ? String(item.field_0) : '');
+    setPhone(item.Phone ?? '');
     setField2(isoToDatetimeLocal(item.field_2));
     setField3(item.field_3 ?? '');
     setField4(item.field_4 ?? '');
@@ -83,6 +86,7 @@ export const EditItemView: React.FC<EditItemViewProps> = ({
     const changedFields: Partial<Omit<Data_checkinWrite, 'ID'>> = {
       Title: title.trim(),
       field_0: field0.trim() !== '' ? Number(field0) : undefined,
+      Phone: phone.trim() !== '' ? phone.trim() : undefined,
       field_2: datetimeLocalToIso(field2),
       field_3: field3.trim(),
       field_4: field4.trim(),
@@ -193,6 +197,23 @@ export const EditItemView: React.FC<EditItemViewProps> = ({
               <span className="form-help-text">Custom numeric identifier (<code>field_0</code>)</span>
             </div>
 
+            {/* Field: Phone */}
+            <div className="form-group form-col-half">
+              <label htmlFor="field-phone" className="form-label">
+                Phone
+              </label>
+              <input
+                id="field-phone"
+                type="tel"
+                className="form-input"
+                placeholder="e.g. +84 901 234 567"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                disabled={isSaving}
+              />
+              <span className="form-help-text">Contact phone number (<code>Phone</code>)</span>
+            </div>
+
             {/* Field: Check in (field_2) */}
             <div className="form-group form-col-half">
               <label htmlFor="field-checkin" className="form-label">
@@ -210,7 +231,7 @@ export const EditItemView: React.FC<EditItemViewProps> = ({
             </div>
 
             {/* Field: Location (field_3) */}
-            <div className="form-group form-col-full">
+            <div className="form-group form-col-half">
               <label htmlFor="field-location" className="form-label">
                 Location
               </label>

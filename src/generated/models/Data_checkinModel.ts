@@ -30,6 +30,7 @@ export interface Data_checkinBase {
   field_2?: string;
   field_3?: string;
   field_4?: string;
+  Phone?: string;
   OData__ColorTag?: string;
   ComplianceAssetId?: string;
   Modified?: string;

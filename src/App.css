@@ -441,6 +441,30 @@
   line-height: 1.35;
 }
 
+.phone-cell {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+}
+
+.phone-link {
+  color: var(--color-accent);
+  text-decoration: none;
+  font-weight: 500;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+}
+
+.phone-link:hover {
+  text-decoration: underline;
+}
+
+.cell-muted {
+  color: var(--color-text-subtle);
+  font-size: var(--text-sm);
+}
+
 .datetime-cell {
   display: flex;
   align-items: center;

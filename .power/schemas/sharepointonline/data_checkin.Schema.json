@@ -132,7 +132,7 @@
           }
         },
         "field_3": {
-          "title": "Loation",
+          "title": "Location",
           "type": "string",
           "x-ms-permission": "read-write",
           "x-ms-sort": "asc,desc",
@@ -145,7 +145,20 @@
           "maxLength": 255
         },
         "field_4": {
-          "title": "note",
+          "title": "Note",
+          "type": "string",
+          "x-ms-permission": "read-write",
+          "x-ms-sort": "asc,desc",
+          "x-ms-capabilities": {
+            "filterFunctions": [
+              "eq",
+              "startswith"
+            ]
+          },
+          "maxLength": 255
+        },
+        "Phone": {
+          "title": "Phone",
           "type": "string",
           "x-ms-permission": "read-write",
           "x-ms-sort": "asc,desc",
@@ -651,6 +664,7 @@
           "field_2",
           "field_3",
           "field_4",
+          "Phone",
           "{Attachments}"
         ],
         "propertiesCompactDisplayOrder": [
@@ -658,14 +672,16 @@
           "field_0",
           "field_2",
           "field_3",
-          "field_4"
+          "field_4",
+          "Phone"
         ],
         "propertiesTabularDisplayOrder": [
           "Title",
           "field_0",
           "field_2",
           "field_3",
-          "field_4"
+          "field_4",
+          "Phone"
         ]
       }
     }
