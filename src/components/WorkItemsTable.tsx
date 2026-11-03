@@ -4,9 +4,16 @@ import type { Data_checkinRead } from '../generated/models/Data_checkinModel';
 interface WorkItemsTableProps {
   items: Data_checkinRead[];
   isDemoData?: boolean;
+  onEdit: (item: Data_checkinRead) => void;
+  onDelete: (item: Data_checkinRead) => void;
 }
 
-export const WorkItemsTable: React.FC<WorkItemsTableProps> = ({ items, isDemoData }) => {
+export const WorkItemsTable: React.FC<WorkItemsTableProps> = ({
+  items,
+  isDemoData,
+  onEdit,
+  onDelete,
+}) => {
   const [searchQuery, setSearchQuery] = useState('');
 
   // Filter items based on user search
@@ -49,7 +56,7 @@ export const WorkItemsTable: React.FC<WorkItemsTableProps> = ({ items, isDemoDat
     }
   };
 
-  // Helper for generating consistent avatar colors
+  // Helper for generating consistent avatar letters
   const getAvatarLetter = (title?: string) => {
     if (!title || title.trim().length === 0) return 'W';
     return title.trim().charAt(0).toUpperCase();
@@ -119,9 +126,10 @@ export const WorkItemsTable: React.FC<WorkItemsTableProps> = ({ items, isDemoDat
             <tr>
               <th scope="col" style={{ width: '85px' }}>Id</th>
               <th scope="col" style={{ minWidth: '220px' }}>Name</th>
-              <th scope="col" style={{ minWidth: '190px' }}>Check in</th>
-              <th scope="col" style={{ minWidth: '190px' }}>Location</th>
-              <th scope="col" style={{ minWidth: '240px' }}>note</th>
+              <th scope="col" style={{ minWidth: '180px' }}>Check in</th>
+              <th scope="col" style={{ minWidth: '180px' }}>Location</th>
+              <th scope="col" style={{ minWidth: '220px' }}>note</th>
+              <th scope="col" style={{ width: '130px', textAlign: 'right' }}>Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -199,6 +207,40 @@ export const WorkItemsTable: React.FC<WorkItemsTableProps> = ({ items, isDemoDat
                       {item.field_4 || 'No notes provided'}
                     </span>
                   </td>
+
+                  {/* Actions: Edit & Delete */}
+                  <td>
+                    <div className="row-actions">
+                      <button
+                        type="button"
+                        className="btn-row-action btn-edit"
+                        onClick={() => onEdit(item)}
+                        title={`Edit #${displayId}`}
+                        aria-label={`Edit ${item.Title || 'item'}`}
+                      >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M12 20h9" />
+                          <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+                        </svg>
+                        <span>Edit</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        className="btn-row-action btn-delete"
+                        onClick={() => onDelete(item)}
+                        title={`Delete #${displayId}`}
+                        aria-label={`Delete ${item.Title || 'item'}`}
+                      >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M3 6h18" />
+                          <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+                          <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+                        </svg>
+                        <span>Delete</span>
+                      </button>
+                    </div>
+                  </td>
                 </tr>
               );
             })}
@@ -247,4 +289,3 @@ export const WorkItemsTable: React.FC<WorkItemsTableProps> = ({ items, isDemoDat
     </div>
   );
 };
-

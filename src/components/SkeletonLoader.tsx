@@ -12,11 +12,12 @@ export const SkeletonLoader: React.FC<SkeletonLoaderProps> = ({ rowCount = 5 }) 
       <table className="data-table">
         <thead>
           <tr>
-            <th style={{ width: '80px' }}>Id</th>
-            <th style={{ width: '220px' }}>Name</th>
-            <th style={{ width: '180px' }}>Check in</th>
-            <th style={{ width: '180px' }}>Location</th>
-            <th>note</th>
+            <th style={{ width: '85px' }}>Id</th>
+            <th style={{ minWidth: '220px' }}>Name</th>
+            <th style={{ minWidth: '180px' }}>Check in</th>
+            <th style={{ minWidth: '180px' }}>Location</th>
+            <th style={{ minWidth: '220px' }}>note</th>
+            <th style={{ width: '130px', textAlign: 'right' }}>Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -61,8 +62,16 @@ export const SkeletonLoader: React.FC<SkeletonLoaderProps> = ({ rowCount = 5 }) 
               <td>
                 <div
                   className="skeleton-shimmer skeleton-line"
-                  style={{ width: `${160 + (index % 4) * 40}px` }}
+                  style={{ width: `${140 + (index % 4) * 30}px` }}
                 />
+              </td>
+
+              {/* Actions */}
+              <td>
+                <div className="row-actions" style={{ justifyContent: 'flex-end' }}>
+                  <div className="skeleton-shimmer skeleton-line" style={{ width: '50px', height: '28px', borderRadius: '6px' }} />
+                  <div className="skeleton-shimmer skeleton-line" style={{ width: '58px', height: '28px', borderRadius: '6px' }} />
+                </div>
               </td>
             </tr>
           ))}
@@ -71,4 +80,3 @@ export const SkeletonLoader: React.FC<SkeletonLoaderProps> = ({ rowCount = 5 }) 
     </div>
   );
 };
-
