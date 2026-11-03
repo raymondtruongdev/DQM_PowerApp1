@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { AccountService } from '../generated/services/AccountService';
+import type { AccountRead } from '../generated/models/AccountModel';
 
 interface LoginPageProps {
   onLoginSuccess: (user: { username: string; displayName: string }) => void;
@@ -9,49 +11,124 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isTestingConnection, setIsTestingConnection] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // Authenticate against SharePoint Account list
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage(null);
+    setStatusMessage(null);
 
     const trimmedUser = username.trim();
     const trimmedPass = password.trim();
 
     if (!trimmedUser || !trimmedPass) {
-      setErrorMessage('Please enter both username and password.');
+      setErrorMessage('Vui lòng nhập đầy đủ Username và Password.');
       return;
     }
 
     setIsSubmitting(true);
 
-    // Simulate authentication processing
-    setTimeout(() => {
-      // Allow demo credentials or valid non-empty login
-      if (trimmedUser.toLowerCase() === 'admin' && trimmedPass !== 'admin' && trimmedPass !== 'admin123') {
-        setErrorMessage('Invalid password for demo admin account (Use: admin or admin123).');
-        setIsSubmitting(false);
-        return;
-      }
+    try {
+      console.log('[LoginPage] Querying SharePoint Account list...');
+      const result = await AccountService.getAll();
+      console.log('[LoginPage] Result:', result);
 
-      onLoginSuccess({
-        username: trimmedUser,
-        displayName: trimmedUser.charAt(0).toUpperCase() + trimmedUser.slice(1),
-      });
+      if (result && result.success && Array.isArray(result.data)) {
+        const accounts: AccountRead[] = result.data;
+        console.log(`[LoginPage] Found ${accounts.length} accounts:`, accounts);
+
+        if (accounts.length === 0) {
+          setErrorMessage(
+            'Đã kết nối SharePoint thành công, nhưng bảng "Account" hiện đang TRỐNG (0 dòng). Hãy vào SharePoint thêm ít nhất một dòng tài khoản!'
+          );
+          return;
+        }
+
+        // Check matching credentials against SharePoint list
+        const matched = accounts.find((acc) => {
+          const anyAcc = acc as Record<string, unknown>;
+          const accUser = String(acc.Title || anyAcc.Username || anyAcc.User || anyAcc.username || '').trim().toLowerCase();
+          const accPass = String(acc.Password || anyAcc.password || '').trim();
+          return accUser === trimmedUser.toLowerCase() && accPass === trimmedPass;
+        });
+
+        if (matched) {
+          const displayName = matched.Title || (matched as Record<string, unknown>).Username || trimmedUser;
+          onLoginSuccess({
+            username: trimmedUser,
+            displayName: String(displayName),
+          });
+          return;
+        } else {
+          const availableList = accounts
+            .map((a) => a.Title || (a as Record<string, unknown>).Username)
+            .filter(Boolean)
+            .join(', ');
+
+          setErrorMessage(
+            `Đã đọc được ${accounts.length} tài khoản từ SharePoint, nhưng không khớp Username/Password đã nhập. (Danh sách username tìm thấy: ${availableList || 'trống'})`
+          );
+        }
+      } else if (result && result.error) {
+        throw new Error(result.error.message || 'Lỗi từ kết nối SharePoint.');
+      } else {
+        throw new Error('Không nhận được dữ liệu từ bảng Account trên SharePoint.');
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error('[LoginPage] Authentication error:', err);
+      setErrorMessage(`Không thể kết nối đến SharePoint Account: ${msg}`);
+      setStatusMessage('Gợi ý: Nếu đang chạy thử bên ngoài Power Apps Player, bạn có thể dùng nút Đăng nhập Nhanh bên dưới.');
+    } finally {
       setIsSubmitting(false);
-    }, 400);
+    }
   };
 
+  // Test connection to Account table directly
+  const handleTestConnection = async () => {
+    setIsTestingConnection(true);
+    setErrorMessage(null);
+    setStatusMessage(null);
+
+    try {
+      console.log('[LoginPage] Testing connection to AccountService...');
+      const result = await AccountService.getAll();
+      console.log('[LoginPage] Test connection result:', result);
+
+      if (result && result.success && Array.isArray(result.data)) {
+        const count = result.data.length;
+        const users = result.data.map((a) => a.Title || (a as Record<string, unknown>).Username).filter(Boolean);
+        setStatusMessage(
+          `Kết nối thành công đến SharePoint! Tìm thấy ${count} bản ghi trong bảng Account. (Users: ${users.join(', ') || 'Chưa có dữ liệu'})`
+        );
+      } else if (result && result.error) {
+        setErrorMessage(`Lỗi phản hồi từ SharePoint: ${result.error.message || 'Không rõ'}`);
+      } else {
+        setErrorMessage('Không nhận được phản hồi hợp lệ từ SharePoint.');
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setErrorMessage(`Kiểm tra kết nối thất bại: ${msg}`);
+    } finally {
+      setIsTestingConnection(false);
+    }
+  };
+
+  // Quick fallback demo login
   const handleQuickDemo = () => {
     setUsername('admin');
     setPassword('admin123');
     setErrorMessage(null);
+    setStatusMessage(null);
     setIsSubmitting(true);
 
     setTimeout(() => {
       onLoginSuccess({
         username: 'admin',
-        displayName: 'Administrator',
+        displayName: 'Administrator (Demo)',
       });
       setIsSubmitting(false);
     }, 300);
@@ -76,8 +153,35 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
         {/* Login Form Card */}
         <div className="login-card">
           <div className="login-intro">
-            <h2 className="login-card-title">Sign in to your account</h2>
-            <p className="login-card-desc">Enter your credentials to access Check-in Management</p>
+            <div className="login-header-flex">
+              <h2 className="login-card-title">Sign in to your account</h2>
+              <button
+                type="button"
+                className="btn-test-conn"
+                onClick={handleTestConnection}
+                disabled={isTestingConnection || isSubmitting}
+                title="Bấm để kiểm tra kết nối trực tiếp đến bảng Account trên SharePoint"
+              >
+                {isTestingConnection ? (
+                  <>
+                    <svg className="spin" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                    </svg>
+                    <span>Đang thử...</span>
+                  </>
+                ) : (
+                  <>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+                    </svg>
+                    <span>Test kết nối</span>
+                  </>
+                )}
+              </button>
+            </div>
+            <p className="login-card-desc">
+              Xác thực trực tiếp với SharePoint List: <code>Account</code>
+            </p>
           </div>
 
           {/* Error Alert */}
@@ -92,11 +196,22 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
             </div>
           )}
 
+          {/* Success / Notice Banner */}
+          {statusMessage && (
+            <div className="login-alert-notice" role="status">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                <polyline points="22 4 12 14.01 9 11.01" />
+              </svg>
+              <span>{statusMessage}</span>
+            </div>
+          )}
+
           <form className="login-form" onSubmit={handleSubmit}>
             {/* Username */}
             <div className="form-group">
               <label htmlFor="login-username" className="form-label">
-                Username
+                Username <span className="field-mapping-hint">(Cột Title / Username)</span>
               </label>
               <div className="input-with-icon">
                 <svg className="input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -107,7 +222,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                   id="login-username"
                   type="text"
                   className="form-input has-icon"
-                  placeholder="Enter username (e.g. admin)"
+                  placeholder="Nhập username"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   autoComplete="username"
@@ -121,7 +236,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
             {/* Password */}
             <div className="form-group">
               <label htmlFor="login-password" className="form-label">
-                Password
+                Password <span className="field-mapping-hint">(Cột Password)</span>
               </label>
               <div className="input-with-icon">
                 <svg className="input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -132,7 +247,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                   id="login-password"
                   type={showPassword ? 'text' : 'password'}
                   className="form-input has-icon has-action"
-                  placeholder="Enter your password"
+                  placeholder="Nhập password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   autoComplete="current-password"
@@ -174,11 +289,11 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                   <svg className="spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
                   </svg>
-                  Signing in...
+                  Đang xác thực với SharePoint...
                 </>
               ) : (
                 <>
-                  <span>Sign In</span>
+                  <span>Đăng Nhập</span>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <line x1="5" y1="12" x2="19" y2="12" />
                     <polyline points="12 5 19 12 12 19" />
@@ -191,11 +306,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
           {/* Quick Demo Helper */}
           <div className="login-demo-helper">
             <div className="demo-helper-divider">
-              <span>Demo Quick Access</span>
+              <span>Môi trường thử nghiệm</span>
             </div>
-            <p className="demo-helper-text">
-              Use demo credentials: <code>admin</code> / <code>admin123</code>
-            </p>
             <button
               type="button"
               className="btn-secondary demo-quick-btn"
@@ -205,17 +317,16 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
               </svg>
-              One-Click Demo Login
+              Đăng nhập Nhanh (Demo Bypass)
             </button>
           </div>
         </div>
 
         {/* Footer info */}
         <p className="login-footer-text">
-          Connected to SharePoint list: <code>data_checkin</code>
+          Đã liên kết bảng: <code>Account</code> (ID: <code>ed1d5359-99f9-4d48-a80f-6c240e2e4335</code>)
         </p>
       </div>
     </div>
   );
 };
-

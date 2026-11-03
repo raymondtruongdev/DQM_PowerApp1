@@ -15,13 +15,17 @@
       "id": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
       "displayName": "SharePoint",
       "dataSources": [
-        "data_checkin"
+        "data_checkin",
+        "account"
       ],
       "dataSets": {
         "https://thadicodqm.sharepoint.com/sites/DataPortal": {
           "dataSources": {
             "data_checkin": {
               "tableName": "626c04c1-1a11-42be-ba76-9d4cc36a2831"
+            },
+            "account": {
+              "tableName": "ed1d5359-99f9-4d48-a80f-6c240e2e4335"
             }
           }
         }

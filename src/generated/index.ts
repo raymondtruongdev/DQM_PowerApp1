@@ -4,8 +4,10 @@
  */
 
 // Models
+export * as AccountModel from './models/AccountModel';
 export * as CommonModels from './models/CommonModels';
 export * as Data_checkinModel from './models/Data_checkinModel';
 
 // Services
+export * from './services/AccountService';
 export * from './services/Data_checkinService';
