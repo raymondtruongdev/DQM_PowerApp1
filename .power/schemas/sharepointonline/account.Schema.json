@@ -114,6 +114,19 @@
           "maximum": 1.7976931348623157e+308,
           "minimum": -1.7976931348623157e+308
         },
+        "Username": {
+          "title": "Username",
+          "type": "string",
+          "x-ms-permission": "read-write",
+          "x-ms-sort": "asc,desc",
+          "x-ms-capabilities": {
+            "filterFunctions": [
+              "eq",
+              "startswith"
+            ]
+          },
+          "maxLength": 255
+        },
         "Password": {
           "title": "Password",
           "type": "string",
@@ -129,6 +142,19 @@
         },
         "Department": {
           "title": "Department",
+          "type": "string",
+          "x-ms-permission": "read-write",
+          "x-ms-sort": "asc,desc",
+          "x-ms-capabilities": {
+            "filterFunctions": [
+              "eq",
+              "startswith"
+            ]
+          },
+          "maxLength": 255
+        },
+        "DeparmentName": {
+          "title": "Deparment Name",
           "type": "string",
           "x-ms-permission": "read-write",
           "x-ms-sort": "asc,desc",
@@ -630,22 +656,28 @@
       "x-ms-displayFormat": {
         "propertiesDisplayOrder": [
           "Id0",
-          "Title",
+          "Username",
           "Password",
           "Department",
+          "DeparmentName",
+          "Title",
           "{Attachments}"
         ],
         "propertiesCompactDisplayOrder": [
           "Title",
           "Id0",
+          "Username",
           "Password",
-          "Department"
+          "Department",
+          "DeparmentName"
         ],
         "propertiesTabularDisplayOrder": [
           "Title",
           "Id0",
+          "Username",
           "Password",
-          "Department"
+          "Department",
+          "DeparmentName"
         ]
       }
     }

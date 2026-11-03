@@ -27,8 +27,10 @@ export interface AccountBase {
   ID?: number;
   Title?: string;
   Id0?: number;
+  Username?: string;
   Password?: string;
   Department?: string;
+  DeparmentName?: string;
   OData__ColorTag?: string;
   ComplianceAssetId?: string;
   Modified?: string;

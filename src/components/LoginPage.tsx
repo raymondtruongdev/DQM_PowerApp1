@@ -13,7 +13,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isTestingConnection, setIsTestingConnection] = useState(false);
 
   // Authenticate against SharePoint Account list
   const handleSubmit = async (e: React.FormEvent) => {
@@ -50,13 +49,13 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
         // Check matching credentials against SharePoint list
         const matched = accounts.find((acc) => {
           const anyAcc = acc as Record<string, unknown>;
-          const accUser = String(acc.Title || anyAcc.Username || anyAcc.User || anyAcc.username || '').trim().toLowerCase();
+          const accUser = String(acc.Username || acc.Title || anyAcc.Usernam || anyAcc.User || anyAcc.username || '').trim().toLowerCase();
           const accPass = String(acc.Password || anyAcc.password || '').trim();
           return accUser === trimmedUser.toLowerCase() && accPass === trimmedPass;
         });
 
         if (matched) {
-          const displayName = matched.Title || (matched as Record<string, unknown>).Username || trimmedUser;
+          const displayName = matched.Username || matched.Title || (matched as Record<string, unknown>).Usernam || trimmedUser;
           onLoginSuccess({
             username: trimmedUser,
             displayName: String(displayName),
@@ -64,7 +63,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
           return;
         } else {
           const availableList = accounts
-            .map((a) => a.Title || (a as Record<string, unknown>).Username)
+            .map((a) => a.Username || a.Title || (a as Record<string, unknown>).Usernam)
             .filter(Boolean)
             .join(', ');
 
@@ -84,36 +83,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
       setStatusMessage('Gợi ý: Nếu đang chạy thử bên ngoài Power Apps Player, bạn có thể dùng nút Đăng nhập Nhanh bên dưới.');
     } finally {
       setIsSubmitting(false);
-    }
-  };
-
-  // Test connection to Account table directly
-  const handleTestConnection = async () => {
-    setIsTestingConnection(true);
-    setErrorMessage(null);
-    setStatusMessage(null);
-
-    try {
-      console.log('[LoginPage] Testing connection to AccountService...');
-      const result = await AccountService.getAll();
-      console.log('[LoginPage] Test connection result:', result);
-
-      if (result && result.success && Array.isArray(result.data)) {
-        const count = result.data.length;
-        const users = result.data.map((a) => a.Title || (a as Record<string, unknown>).Username).filter(Boolean);
-        setStatusMessage(
-          `Kết nối thành công đến SharePoint! Tìm thấy ${count} bản ghi trong bảng Account. (Users: ${users.join(', ') || 'Chưa có dữ liệu'})`
-        );
-      } else if (result && result.error) {
-        setErrorMessage(`Lỗi phản hồi từ SharePoint: ${result.error.message || 'Không rõ'}`);
-      } else {
-        setErrorMessage('Không nhận được phản hồi hợp lệ từ SharePoint.');
-      }
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : String(err);
-      setErrorMessage(`Kiểm tra kết nối thất bại: ${msg}`);
-    } finally {
-      setIsTestingConnection(false);
     }
   };
 
@@ -153,35 +122,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
         {/* Login Form Card */}
         <div className="login-card">
           <div className="login-intro">
-            <div className="login-header-flex">
-              <h2 className="login-card-title">Sign in to your account</h2>
-              <button
-                type="button"
-                className="btn-test-conn"
-                onClick={handleTestConnection}
-                disabled={isTestingConnection || isSubmitting}
-                title="Bấm để kiểm tra kết nối trực tiếp đến bảng Account trên SharePoint"
-              >
-                {isTestingConnection ? (
-                  <>
-                    <svg className="spin" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
-                    </svg>
-                    <span>Đang thử...</span>
-                  </>
-                ) : (
-                  <>
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
-                    </svg>
-                    <span>Test kết nối</span>
-                  </>
-                )}
-              </button>
-            </div>
-            <p className="login-card-desc">
-              Xác thực trực tiếp với SharePoint List: <code>Account</code>
-            </p>
+            <h2 className="login-card-title">Sign in</h2>
+            <p className="login-card-desc">Đăng nhập bằng tài khoản hệ thống của bạn</p>
           </div>
 
           {/* Error Alert */}
@@ -211,7 +153,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
             {/* Username */}
             <div className="form-group">
               <label htmlFor="login-username" className="form-label">
-                Username <span className="field-mapping-hint">(Cột Title / Username)</span>
+                Username
               </label>
               <div className="input-with-icon">
                 <svg className="input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -236,7 +178,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
             {/* Password */}
             <div className="form-group">
               <label htmlFor="login-password" className="form-label">
-                Password <span className="field-mapping-hint">(Cột Password)</span>
+                Password
               </label>
               <div className="input-with-icon">
                 <svg className="input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -324,7 +266,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
 
         {/* Footer info */}
         <p className="login-footer-text">
-          Đã liên kết bảng: <code>Account</code> (ID: <code>ed1d5359-99f9-4d48-a80f-6c240e2e4335</code>)
+          Hệ thống Quản lý Check-in THADICO
         </p>
       </div>
     </div>
