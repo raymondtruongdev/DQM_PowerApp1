@@ -1,12 +1,45 @@
 import React, { useState, useMemo } from 'react';
 import type { Data_checkinRead } from '../generated/models/Data_checkinModel';
 
+export type SortField = 'id' | 'title' | 'phone' | 'checkin' | 'location' | 'note';
+export type SortDirection = 'asc' | 'desc';
+
+interface SortConfig {
+  field: SortField;
+  direction: SortDirection;
+}
+
 interface WorkItemsTableProps {
   items: Data_checkinRead[];
   isDemoData?: boolean;
   onEdit: (item: Data_checkinRead) => void;
   onDelete: (item: Data_checkinRead) => void;
 }
+
+// Visual Sort Indicator Icon component
+const SortIndicator: React.FC<{ active: boolean; direction: SortDirection }> = ({
+  active,
+  direction,
+}) => {
+  return (
+    <span className={`sort-icon-wrapper ${active ? 'is-active' : ''}`} aria-hidden="true">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+        {active ? (
+          direction === 'asc' ? (
+            <path d="M18 15l-6-6-6 6" />
+          ) : (
+            <path d="M6 9l6 6 6-6" />
+          )
+        ) : (
+          <>
+            <path d="M7 14l5 5 5-5" opacity="0.35" />
+            <path d="M7 10l5-5 5 5" opacity="0.35" />
+          </>
+        )}
+      </svg>
+    </span>
+  );
+};
 
 export const WorkItemsTable: React.FC<WorkItemsTableProps> = ({
   items,
@@ -15,28 +48,97 @@ export const WorkItemsTable: React.FC<WorkItemsTableProps> = ({
   onDelete,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
+  const [sortConfig, setSortConfig] = useState<SortConfig>({
+    field: 'id',
+    direction: 'desc',
+  });
 
-  // Filter items based on user search
-  const filteredItems = useMemo(() => {
-    if (!searchQuery.trim()) return items;
-    const query = searchQuery.toLowerCase().trim();
-
-    return items.filter((item) => {
-      const idStr = String(item.field_0 ?? item.ID ?? '').toLowerCase();
-      const titleStr = (item.Title || '').toLowerCase();
-      const phoneStr = (item.Phone || '').toLowerCase();
-      const locationStr = (item.field_3 || '').toLowerCase();
-      const noteStr = (item.field_4 || '').toLowerCase();
-
-      return (
-        idStr.includes(query) ||
-        titleStr.includes(query) ||
-        phoneStr.includes(query) ||
-        locationStr.includes(query) ||
-        noteStr.includes(query)
-      );
+  // Toggle sorting on column click
+  const handleSort = (field: SortField) => {
+    setSortConfig((prev) => {
+      if (prev.field === field) {
+        return {
+          field,
+          direction: prev.direction === 'asc' ? 'desc' : 'asc',
+        };
+      }
+      return {
+        field,
+        direction: field === 'id' || field === 'checkin' ? 'desc' : 'asc',
+      };
     });
-  }, [items, searchQuery]);
+  };
+
+  // Filter and sort items
+  const processedItems = useMemo(() => {
+    let result = items;
+
+    // 1. Filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase().trim();
+      result = result.filter((item) => {
+        const idStr = String(item.field_0 ?? item.ID ?? '').toLowerCase();
+        const titleStr = (item.Title || '').toLowerCase();
+        const phoneStr = (item.Phone || '').toLowerCase();
+        const locationStr = (item.field_3 || '').toLowerCase();
+        const noteStr = (item.field_4 || '').toLowerCase();
+
+        return (
+          idStr.includes(query) ||
+          titleStr.includes(query) ||
+          phoneStr.includes(query) ||
+          locationStr.includes(query) ||
+          noteStr.includes(query)
+        );
+      });
+    }
+
+    // 2. Sort
+    return [...result].sort((a, b) => {
+      let comparison = 0;
+
+      switch (sortConfig.field) {
+        case 'id': {
+          const idA = a.field_0 !== undefined ? a.field_0 : (a.ID ?? 0);
+          const idB = b.field_0 !== undefined ? b.field_0 : (b.ID ?? 0);
+          comparison = idA - idB;
+          break;
+        }
+        case 'title': {
+          const titleA = a.Title || '';
+          const titleB = b.Title || '';
+          comparison = titleA.localeCompare(titleB, undefined, { sensitivity: 'base' });
+          break;
+        }
+        case 'phone': {
+          const phoneA = a.Phone || '';
+          const phoneB = b.Phone || '';
+          comparison = phoneA.localeCompare(phoneB, undefined, { sensitivity: 'base' });
+          break;
+        }
+        case 'checkin': {
+          const timeA = a.field_2 ? new Date(a.field_2).getTime() : 0;
+          const timeB = b.field_2 ? new Date(b.field_2).getTime() : 0;
+          comparison = timeA - timeB;
+          break;
+        }
+        case 'location': {
+          const locA = a.field_3 || '';
+          const locB = b.field_3 || '';
+          comparison = locA.localeCompare(locB, undefined, { sensitivity: 'base' });
+          break;
+        }
+        case 'note': {
+          const noteA = a.field_4 || '';
+          const noteB = b.field_4 || '';
+          comparison = noteA.localeCompare(noteB, undefined, { sensitivity: 'base' });
+          break;
+        }
+      }
+
+      return sortConfig.direction === 'asc' ? comparison : -comparison;
+    });
+  }, [items, searchQuery, sortConfig]);
 
   // Helper to format ISO date string nicely
   const formatDateTime = (dateString?: string) => {
@@ -64,6 +166,11 @@ export const WorkItemsTable: React.FC<WorkItemsTableProps> = ({
     return title.trim().charAt(0).toUpperCase();
   };
 
+  const getSortTitle = (label: string, field: SortField) => {
+    if (sortConfig.field !== field) return `Sort by ${label}`;
+    return `Sorted by ${label} (${sortConfig.direction === 'asc' ? 'Ascending' : 'Descending'}) - Click to reverse`;
+  };
+
   return (
     <div className="card-container">
       {/* Table Toolbar Header */}
@@ -72,16 +179,19 @@ export const WorkItemsTable: React.FC<WorkItemsTableProps> = ({
           <div className="toolbar-title-row">
             <h2 className="toolbar-title">Work Items</h2>
             <span className="count-badge">
-              {filteredItems.length} {filteredItems.length === 1 ? 'item' : 'items'}
+              {processedItems.length} {processedItems.length === 1 ? 'item' : 'items'}
             </span>
             {isDemoData && (
               <span className="demo-badge" title="Showing preview sample data">
                 Demo Preview
               </span>
             )}
+            <span className="sort-status-pill">
+              Sorted by: <strong>{sortConfig.field.toUpperCase()}</strong> ({sortConfig.direction === 'asc' ? '↑ Asc' : '↓ Desc'})
+            </span>
           </div>
           <p className="toolbar-subtitle">
-            Records logged in SharePoint list: <code>data_checkin</code>
+            Records logged in SharePoint list: <code>data_checkin</code> • Click any column header to sort
           </p>
         </div>
 
@@ -126,17 +236,92 @@ export const WorkItemsTable: React.FC<WorkItemsTableProps> = ({
         <table className="data-table">
           <thead>
             <tr>
-              <th scope="col" style={{ width: '85px' }}>Id</th>
-              <th scope="col" style={{ minWidth: '200px' }}>Name</th>
-              <th scope="col" style={{ minWidth: '150px' }}>Phone</th>
-              <th scope="col" style={{ minWidth: '180px' }}>Check in</th>
-              <th scope="col" style={{ minWidth: '180px' }}>Location</th>
-              <th scope="col" style={{ minWidth: '200px' }}>note</th>
-              <th scope="col" style={{ width: '130px', textAlign: 'right' }}>Actions</th>
+              {/* Id Column */}
+              <th scope="col" style={{ width: '95px' }}>
+                <button
+                  type="button"
+                  className={`th-sort-btn ${sortConfig.field === 'id' ? 'is-active' : ''}`}
+                  onClick={() => handleSort('id')}
+                  title={getSortTitle('Id', 'id')}
+                >
+                  <span>Id</span>
+                  <SortIndicator active={sortConfig.field === 'id'} direction={sortConfig.direction} />
+                </button>
+              </th>
+
+              {/* Name Column */}
+              <th scope="col" style={{ minWidth: '200px' }}>
+                <button
+                  type="button"
+                  className={`th-sort-btn ${sortConfig.field === 'title' ? 'is-active' : ''}`}
+                  onClick={() => handleSort('title')}
+                  title={getSortTitle('Name', 'title')}
+                >
+                  <span>Name</span>
+                  <SortIndicator active={sortConfig.field === 'title'} direction={sortConfig.direction} />
+                </button>
+              </th>
+
+              {/* Phone Column */}
+              <th scope="col" style={{ minWidth: '150px' }}>
+                <button
+                  type="button"
+                  className={`th-sort-btn ${sortConfig.field === 'phone' ? 'is-active' : ''}`}
+                  onClick={() => handleSort('phone')}
+                  title={getSortTitle('Phone', 'phone')}
+                >
+                  <span>Phone</span>
+                  <SortIndicator active={sortConfig.field === 'phone'} direction={sortConfig.direction} />
+                </button>
+              </th>
+
+              {/* Check in Column */}
+              <th scope="col" style={{ minWidth: '180px' }}>
+                <button
+                  type="button"
+                  className={`th-sort-btn ${sortConfig.field === 'checkin' ? 'is-active' : ''}`}
+                  onClick={() => handleSort('checkin')}
+                  title={getSortTitle('Check in', 'checkin')}
+                >
+                  <span>Check in</span>
+                  <SortIndicator active={sortConfig.field === 'checkin'} direction={sortConfig.direction} />
+                </button>
+              </th>
+
+              {/* Location Column */}
+              <th scope="col" style={{ minWidth: '180px' }}>
+                <button
+                  type="button"
+                  className={`th-sort-btn ${sortConfig.field === 'location' ? 'is-active' : ''}`}
+                  onClick={() => handleSort('location')}
+                  title={getSortTitle('Location', 'location')}
+                >
+                  <span>Location</span>
+                  <SortIndicator active={sortConfig.field === 'location'} direction={sortConfig.direction} />
+                </button>
+              </th>
+
+              {/* Note Column */}
+              <th scope="col" style={{ minWidth: '200px' }}>
+                <button
+                  type="button"
+                  className={`th-sort-btn ${sortConfig.field === 'note' ? 'is-active' : ''}`}
+                  onClick={() => handleSort('note')}
+                  title={getSortTitle('Note', 'note')}
+                >
+                  <span>Note</span>
+                  <SortIndicator active={sortConfig.field === 'note'} direction={sortConfig.direction} />
+                </button>
+              </th>
+
+              {/* Actions Column (Non-sortable) */}
+              <th scope="col" style={{ width: '130px', textAlign: 'right' }}>
+                <span>Actions</span>
+              </th>
             </tr>
           </thead>
           <tbody>
-            {filteredItems.map((item, index) => {
+            {processedItems.map((item, index) => {
               const displayId = item.field_0 !== undefined ? item.field_0 : item.ID;
               const formattedDate = formatDateTime(item.field_2);
               const avatarChar = getAvatarLetter(item.Title);
@@ -277,7 +462,7 @@ export const WorkItemsTable: React.FC<WorkItemsTableProps> = ({
         </table>
 
         {/* Empty State when Search has no matches */}
-        {filteredItems.length === 0 && (
+        {processedItems.length === 0 && (
           <div className="table-empty-state">
             <svg
               width="36"
@@ -311,7 +496,7 @@ export const WorkItemsTable: React.FC<WorkItemsTableProps> = ({
       {/* Table Footer info */}
       <div className="table-footer">
         <span className="footer-meta">
-          Showing {filteredItems.length} of {items.length} total entries
+          Showing {processedItems.length} of {items.length} total entries • Sorted by {sortConfig.field} ({sortConfig.direction})
         </span>
         <span className="footer-brand">SharePoint List Integration</span>
       </div>
