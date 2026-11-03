@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import './App.css';
+import { LoginPage } from './components/LoginPage';
 import { TopAppBar } from './components/TopAppBar';
 import { WorkItemsTable } from './components/WorkItemsTable';
 import { SkeletonLoader } from './components/SkeletonLoader';
@@ -72,7 +73,23 @@ interface ToastState {
   text: string;
 }
 
+interface UserSession {
+  username: string;
+  displayName: string;
+}
+
 function App() {
+  // Authentication State: Default to null so the app presents the Login page first
+  const [currentUser, setCurrentUser] = useState<UserSession | null>(() => {
+    try {
+      const saved = sessionStorage.getItem('powerapp1_session');
+      if (saved) return JSON.parse(saved);
+    } catch {
+      // Ignore
+    }
+    return null;
+  });
+
   const [items, setItems] = useState<Data_checkinRead[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -134,7 +151,10 @@ function App() {
     void fetchRecords();
   }, [fetchRecords]);
 
+  // Load records once authenticated
   useEffect(() => {
+    if (!currentUser) return;
+
     let ignore = false;
 
     async function initialize() {
@@ -169,7 +189,32 @@ function App() {
     return () => {
       ignore = true;
     };
-  }, []);
+  }, [currentUser]);
+
+  // Auth Handlers
+  const handleLoginSuccess = (user: UserSession) => {
+    setIsLoading(true);
+    setErrorMessage(null);
+    setCurrentUser(user);
+    try {
+      sessionStorage.setItem('powerapp1_session', JSON.stringify(user));
+    } catch {
+      // Ignore
+    }
+    showToast('success', `Welcome back, ${user.displayName}! Access granted.`);
+  };
+
+  const handleLogout = () => {
+    setCurrentUser(null);
+    setEditingItem(null);
+    setDeletingItem(null);
+    try {
+      sessionStorage.removeItem('powerapp1_session');
+    } catch {
+      // Ignore
+    }
+    showToast('success', 'You have been signed out.');
+  };
 
   const handleUseDemoData = () => {
     setItems(SAMPLE_RECORDS);
@@ -277,13 +322,37 @@ function App() {
     }
   };
 
+  // If not authenticated, render Login Page by default
+  if (!currentUser) {
+    return (
+      <>
+        {toast && (
+          <aside
+            className={`toast-notification toast-${toast.type}`}
+            style={{ position: 'fixed', top: '20px', right: '20px', zIndex: 100 }}
+            role="status"
+            aria-live="polite"
+          >
+            <div className="toast-content">
+              <span>{toast.text}</span>
+            </div>
+          </aside>
+        )}
+        <LoginPage onLoginSuccess={handleLoginSuccess} />
+      </>
+    );
+  }
+
+  // Once authenticated, render Check-in Management
   return (
     <div className="app-layout">
-      {/* Top App Bar titled "PowerApp1" */}
+      {/* Top App Bar titled "PowerApp1" with active user & logout */}
       <TopAppBar
         onRefresh={handleRefresh}
         isLoading={isLoading}
         itemCount={!isLoading && !errorMessage ? items.length : undefined}
+        currentUser={currentUser}
+        onLogout={handleLogout}
       />
 
       {/* Main Content Area */}
