@@ -320,6 +320,28 @@
   color: var(--color-text-secondary);
 }
 
+/* Toolbar Action Group */
+.toolbar-actions-group {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.btn-text-subtle {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  font-weight: 500;
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  transition: all var(--transition-fast);
+}
+
+.btn-text-subtle:hover {
+  color: var(--color-text-primary);
+  background-color: var(--color-surface-subtle);
+}
+
 /* Search Box */
 .search-wrapper {
   position: relative;
@@ -387,9 +409,67 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  padding: var(--space-3) var(--space-6);
+  padding: var(--space-3) var(--space-4);
   border-bottom: 1px solid var(--color-border);
   white-space: nowrap;
+  position: relative;
+  overflow: visible;
+}
+
+/* Resizable Column Headers */
+.th-resizable {
+  position: relative;
+  user-select: none;
+}
+
+.th-content {
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  width: 100%;
+}
+
+.col-resizer {
+  position: absolute;
+  top: 0;
+  right: -1px;
+  bottom: 0;
+  width: 9px;
+  cursor: col-resize;
+  user-select: none;
+  touch-action: none;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.col-resizer::after {
+  content: '';
+  display: block;
+  width: 2px;
+  height: 50%;
+  background-color: transparent;
+  border-radius: 1px;
+  transition: all var(--transition-fast);
+}
+
+.col-resizer:hover::after,
+.col-resizer.is-active::after {
+  background-color: var(--color-accent);
+  height: 100%;
+  box-shadow: 0 0 4px var(--color-accent-ring);
+}
+
+.data-table.is-resizing {
+  user-select: none !important;
+  cursor: col-resize !important;
+}
+
+.data-table.is-resizing * {
+  cursor: col-resize !important;
 }
 
 /* Column Header Sort Buttons */
@@ -448,10 +528,12 @@
 }
 
 .data-table tbody td {
-  padding: var(--space-4) var(--space-6);
+  padding: var(--space-3) var(--space-4);
   border-bottom: 1px solid var(--color-border-subtle);
   font-size: var(--text-sm);
   vertical-align: middle;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .data-table tbody tr:last-child td {
@@ -475,6 +557,15 @@
   display: flex;
   align-items: center;
   gap: var(--space-3);
+  min-width: 0;
+  overflow: hidden;
+}
+
+.name-text-group {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .avatar-chip {
@@ -496,6 +587,9 @@
   font-weight: 600;
   color: var(--color-text-primary);
   line-height: 1.35;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .phone-cell {
@@ -568,12 +662,41 @@
 }
 
 /* ==========================================================================
-   Table Row Actions (Edit & Delete)
+   Table Row Actions (Edit & Delete) - Fixed & Centered
    ========================================================================== */
+.th-actions {
+  position: sticky;
+  right: 0;
+  z-index: 15;
+  background-color: #fafbfc !important;
+  text-align: center !important;
+  border-left: 1px solid var(--color-border);
+  box-shadow: -4px 0 8px -3px rgba(15, 23, 42, 0.06);
+}
+
+.th-actions .th-content {
+  justify-content: center !important;
+  text-align: center !important;
+}
+
+.td-actions {
+  position: sticky;
+  right: 0;
+  z-index: 10;
+  background-color: var(--color-surface);
+  border-left: 1px solid var(--color-border);
+  box-shadow: -4px 0 8px -3px rgba(15, 23, 42, 0.06);
+  text-align: center;
+}
+
+.data-table tbody tr:hover .td-actions {
+  background-color: var(--color-surface-hover);
+}
+
 .row-actions {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: center;
   gap: var(--space-2);
 }
 

@@ -9,7 +9,16 @@ export const SkeletonLoader: React.FC<SkeletonLoaderProps> = ({ rowCount = 5 }) 
 
   return (
     <div className="skeleton-container" aria-busy="true" aria-label="Loading data">
-      <table className="data-table">
+      <table className="data-table" style={{ tableLayout: 'fixed', minWidth: '100%' }}>
+        <colgroup>
+          <col style={{ width: '85px' }} />
+          <col style={{ width: '220px' }} />
+          <col style={{ width: '160px' }} />
+          <col style={{ width: '180px' }} />
+          <col style={{ width: '180px' }} />
+          <col style={{ width: '240px' }} />
+          <col style={{ width: '145px' }} />
+        </colgroup>
         <thead>
           <tr>
             <th style={{ width: '85px' }}>Id</th>
@@ -18,7 +27,11 @@ export const SkeletonLoader: React.FC<SkeletonLoaderProps> = ({ rowCount = 5 }) 
             <th style={{ minWidth: '180px' }}>Check in</th>
             <th style={{ minWidth: '180px' }}>Location</th>
             <th style={{ minWidth: '200px' }}>note</th>
-            <th style={{ width: '130px', textAlign: 'right' }}>Actions</th>
+            <th scope="col" className="th-actions" style={{ width: '145px', textAlign: 'center' }}>
+              <div className="th-content" style={{ justifyContent: 'center' }}>
+                <span>ACTION</span>
+              </div>
+            </th>
           </tr>
         </thead>
         <tbody>
@@ -75,9 +88,9 @@ export const SkeletonLoader: React.FC<SkeletonLoaderProps> = ({ rowCount = 5 }) 
                 />
               </td>
 
-              {/* Actions */}
-              <td>
-                <div className="row-actions" style={{ justifyContent: 'flex-end' }}>
+              {/* ACTION: Centered skeleton buttons */}
+              <td className="td-actions">
+                <div className="row-actions" style={{ justifyContent: 'center' }}>
                   <div className="skeleton-shimmer skeleton-line" style={{ width: '50px', height: '28px', borderRadius: '6px' }} />
                   <div className="skeleton-shimmer skeleton-line" style={{ width: '58px', height: '28px', borderRadius: '6px' }} />
                 </div>

@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import type { Data_checkinRead } from '../generated/models/Data_checkinModel';
 
 export type SortField = 'id' | 'title' | 'phone' | 'checkin' | 'location' | 'note';
@@ -15,6 +15,29 @@ interface WorkItemsTableProps {
   onEdit: (item: Data_checkinRead) => void;
   onDelete: (item: Data_checkinRead) => void;
 }
+
+// Fixed width for the Action column so buttons always remain visible and stable
+const ACTIONS_COLUMN_WIDTH = 145;
+
+// Sensible default column widths in pixels for resizable columns
+const DEFAULT_COLUMN_WIDTHS: Record<string, number> = {
+  id: 85,
+  title: 220,
+  phone: 160,
+  checkin: 180,
+  location: 180,
+  note: 240,
+};
+
+// Minimum column widths to ensure usability
+const MIN_COLUMN_WIDTHS: Record<string, number> = {
+  id: 65,
+  title: 130,
+  phone: 110,
+  checkin: 130,
+  location: 120,
+  note: 140,
+};
 
 // Visual Sort Indicator Icon component
 const SortIndicator: React.FC<{ active: boolean; direction: SortDirection }> = ({
@@ -53,8 +76,94 @@ export const WorkItemsTable: React.FC<WorkItemsTableProps> = ({
     direction: 'desc',
   });
 
+  // Resizable column widths with persistent storage in localStorage
+  const [columnWidths, setColumnWidths] = useState<Record<string, number>>(() => {
+    try {
+      const saved = localStorage.getItem('powerapp1_column_widths');
+      if (saved) {
+        return { ...DEFAULT_COLUMN_WIDTHS, ...JSON.parse(saved) };
+      }
+    } catch {
+      // Fallback to defaults
+    }
+    return DEFAULT_COLUMN_WIDTHS;
+  });
+
+  const [resizingCol, setResizingCol] = useState<string | null>(null);
+
+  // Resize column border drag handler
+  const startResize = useCallback(
+    (columnKey: string, e: React.MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+
+      const startX = e.clientX;
+      const initialWidth = columnWidths[columnKey] ?? DEFAULT_COLUMN_WIDTHS[columnKey];
+      const minWidth = MIN_COLUMN_WIDTHS[columnKey] ?? 60;
+
+      setResizingCol(columnKey);
+      document.body.style.cursor = 'col-resize';
+      document.body.style.userSelect = 'none';
+
+      const handleMouseMove = (moveEvent: MouseEvent) => {
+        const deltaX = moveEvent.clientX - startX;
+        const newWidth = Math.max(minWidth, Math.round(initialWidth + deltaX));
+
+        setColumnWidths((prev) => {
+          const next = { ...prev, [columnKey]: newWidth };
+          try {
+            localStorage.setItem('powerapp1_column_widths', JSON.stringify(next));
+          } catch {
+            // Ignore storage errors
+          }
+          return next;
+        });
+      };
+
+      const handleMouseUp = () => {
+        setResizingCol(null);
+        document.body.style.cursor = '';
+        document.body.style.userSelect = '';
+        document.removeEventListener('mousemove', handleMouseMove);
+        document.removeEventListener('mouseup', handleMouseUp);
+      };
+
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+    },
+    [columnWidths]
+  );
+
+  // Double click resizer to reset to default width
+  const resetColumnWidth = (columnKey: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setColumnWidths((prev) => {
+      const next = { ...prev, [columnKey]: DEFAULT_COLUMN_WIDTHS[columnKey] };
+      try {
+        localStorage.setItem('powerapp1_column_widths', JSON.stringify(next));
+      } catch {
+        // Ignore storage errors
+      }
+      return next;
+    });
+  };
+
+  // Reset all columns
+  const resetAllWidths = () => {
+    setColumnWidths(DEFAULT_COLUMN_WIDTHS);
+    try {
+      localStorage.removeItem('powerapp1_column_widths');
+    } catch {
+      // Ignore
+    }
+  };
+
   // Toggle sorting on column click
   const handleSort = (field: SortField) => {
+    // If currently resizing, avoid triggering sort
+    if (resizingCol) return;
+
     setSortConfig((prev) => {
       if (prev.field === field) {
         return {
@@ -191,132 +300,208 @@ export const WorkItemsTable: React.FC<WorkItemsTableProps> = ({
             </span>
           </div>
           <p className="toolbar-subtitle">
-            Records logged in SharePoint list: <code>data_checkin</code> • Click any column header to sort
+            Records logged in SharePoint list: <code>data_checkin</code> • Drag column borders to resize • Click headers to sort
           </p>
         </div>
 
-        {/* Search Input */}
-        <div className="search-wrapper">
-          <svg
-            className="search-icon"
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
+        {/* Toolbar Controls: Search & Reset Widths */}
+        <div className="toolbar-actions-group">
+          <button
+            type="button"
+            className="btn-text-subtle"
+            onClick={resetAllWidths}
+            title="Reset column widths to default layout"
           >
-            <circle cx="11" cy="11" r="8" />
-            <line x1="21" y1="21" x2="16.65" y2="16.65" />
-          </svg>
-          <input
-            type="text"
-            className="search-input"
-            placeholder="Search by name, ID, phone, location..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-          {searchQuery && (
-            <button
-              type="button"
-              className="search-clear-btn"
-              onClick={() => setSearchQuery('')}
-              aria-label="Clear search"
+            Reset widths
+          </button>
+
+          {/* Search Input */}
+          <div className="search-wrapper">
+            <svg
+              className="search-icon"
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
             >
-              ×
-            </button>
-          )}
+              <circle cx="11" cy="11" r="8" />
+              <line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+            <input
+              type="text"
+              className="search-input"
+              placeholder="Search by name, ID, phone, location..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                className="search-clear-btn"
+                onClick={() => setSearchQuery('')}
+                aria-label="Clear search"
+              >
+                ×
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
       {/* Responsive Table Container */}
       <div className="table-responsive">
-        <table className="data-table">
+        <table
+          className={`data-table ${resizingCol ? 'is-resizing' : ''}`}
+          style={{ tableLayout: 'fixed', minWidth: '100%' }}
+        >
+          {/* Column definitions for precise pixel width resizing */}
+          <colgroup>
+            <col style={{ width: `${columnWidths.id}px` }} />
+            <col style={{ width: `${columnWidths.title}px` }} />
+            <col style={{ width: `${columnWidths.phone}px` }} />
+            <col style={{ width: `${columnWidths.checkin}px` }} />
+            <col style={{ width: `${columnWidths.location}px` }} />
+            <col style={{ width: `${columnWidths.note}px` }} />
+            <col style={{ width: `${ACTIONS_COLUMN_WIDTH}px` }} />
+          </colgroup>
+
           <thead>
             <tr>
               {/* Id Column */}
-              <th scope="col" style={{ width: '95px' }}>
-                <button
-                  type="button"
-                  className={`th-sort-btn ${sortConfig.field === 'id' ? 'is-active' : ''}`}
-                  onClick={() => handleSort('id')}
-                  title={getSortTitle('Id', 'id')}
-                >
-                  <span>Id</span>
-                  <SortIndicator active={sortConfig.field === 'id'} direction={sortConfig.direction} />
-                </button>
+              <th scope="col" className="th-resizable">
+                <div className="th-content">
+                  <button
+                    type="button"
+                    className={`th-sort-btn ${sortConfig.field === 'id' ? 'is-active' : ''}`}
+                    onClick={() => handleSort('id')}
+                    title={getSortTitle('Id', 'id')}
+                  >
+                    <span>Id</span>
+                    <SortIndicator active={sortConfig.field === 'id'} direction={sortConfig.direction} />
+                  </button>
+                </div>
+                <div
+                  className={`col-resizer ${resizingCol === 'id' ? 'is-active' : ''}`}
+                  onMouseDown={(e) => startResize('id', e)}
+                  onDoubleClick={(e) => resetColumnWidth('id', e)}
+                  title="Drag to resize column (Double-click to reset)"
+                />
               </th>
 
               {/* Name Column */}
-              <th scope="col" style={{ minWidth: '200px' }}>
-                <button
-                  type="button"
-                  className={`th-sort-btn ${sortConfig.field === 'title' ? 'is-active' : ''}`}
-                  onClick={() => handleSort('title')}
-                  title={getSortTitle('Name', 'title')}
-                >
-                  <span>Name</span>
-                  <SortIndicator active={sortConfig.field === 'title'} direction={sortConfig.direction} />
-                </button>
+              <th scope="col" className="th-resizable">
+                <div className="th-content">
+                  <button
+                    type="button"
+                    className={`th-sort-btn ${sortConfig.field === 'title' ? 'is-active' : ''}`}
+                    onClick={() => handleSort('title')}
+                    title={getSortTitle('Name', 'title')}
+                  >
+                    <span>Name</span>
+                    <SortIndicator active={sortConfig.field === 'title'} direction={sortConfig.direction} />
+                  </button>
+                </div>
+                <div
+                  className={`col-resizer ${resizingCol === 'title' ? 'is-active' : ''}`}
+                  onMouseDown={(e) => startResize('title', e)}
+                  onDoubleClick={(e) => resetColumnWidth('title', e)}
+                  title="Drag to resize column (Double-click to reset)"
+                />
               </th>
 
               {/* Phone Column */}
-              <th scope="col" style={{ minWidth: '150px' }}>
-                <button
-                  type="button"
-                  className={`th-sort-btn ${sortConfig.field === 'phone' ? 'is-active' : ''}`}
-                  onClick={() => handleSort('phone')}
-                  title={getSortTitle('Phone', 'phone')}
-                >
-                  <span>Phone</span>
-                  <SortIndicator active={sortConfig.field === 'phone'} direction={sortConfig.direction} />
-                </button>
+              <th scope="col" className="th-resizable">
+                <div className="th-content">
+                  <button
+                    type="button"
+                    className={`th-sort-btn ${sortConfig.field === 'phone' ? 'is-active' : ''}`}
+                    onClick={() => handleSort('phone')}
+                    title={getSortTitle('Phone', 'phone')}
+                  >
+                    <span>Phone</span>
+                    <SortIndicator active={sortConfig.field === 'phone'} direction={sortConfig.direction} />
+                  </button>
+                </div>
+                <div
+                  className={`col-resizer ${resizingCol === 'phone' ? 'is-active' : ''}`}
+                  onMouseDown={(e) => startResize('phone', e)}
+                  onDoubleClick={(e) => resetColumnWidth('phone', e)}
+                  title="Drag to resize column (Double-click to reset)"
+                />
               </th>
 
               {/* Check in Column */}
-              <th scope="col" style={{ minWidth: '180px' }}>
-                <button
-                  type="button"
-                  className={`th-sort-btn ${sortConfig.field === 'checkin' ? 'is-active' : ''}`}
-                  onClick={() => handleSort('checkin')}
-                  title={getSortTitle('Check in', 'checkin')}
-                >
-                  <span>Check in</span>
-                  <SortIndicator active={sortConfig.field === 'checkin'} direction={sortConfig.direction} />
-                </button>
+              <th scope="col" className="th-resizable">
+                <div className="th-content">
+                  <button
+                    type="button"
+                    className={`th-sort-btn ${sortConfig.field === 'checkin' ? 'is-active' : ''}`}
+                    onClick={() => handleSort('checkin')}
+                    title={getSortTitle('Check in', 'checkin')}
+                  >
+                    <span>Check in</span>
+                    <SortIndicator active={sortConfig.field === 'checkin'} direction={sortConfig.direction} />
+                  </button>
+                </div>
+                <div
+                  className={`col-resizer ${resizingCol === 'checkin' ? 'is-active' : ''}`}
+                  onMouseDown={(e) => startResize('checkin', e)}
+                  onDoubleClick={(e) => resetColumnWidth('checkin', e)}
+                  title="Drag to resize column (Double-click to reset)"
+                />
               </th>
 
               {/* Location Column */}
-              <th scope="col" style={{ minWidth: '180px' }}>
-                <button
-                  type="button"
-                  className={`th-sort-btn ${sortConfig.field === 'location' ? 'is-active' : ''}`}
-                  onClick={() => handleSort('location')}
-                  title={getSortTitle('Location', 'location')}
-                >
-                  <span>Location</span>
-                  <SortIndicator active={sortConfig.field === 'location'} direction={sortConfig.direction} />
-                </button>
+              <th scope="col" className="th-resizable">
+                <div className="th-content">
+                  <button
+                    type="button"
+                    className={`th-sort-btn ${sortConfig.field === 'location' ? 'is-active' : ''}`}
+                    onClick={() => handleSort('location')}
+                    title={getSortTitle('Location', 'location')}
+                  >
+                    <span>Location</span>
+                    <SortIndicator active={sortConfig.field === 'location'} direction={sortConfig.direction} />
+                  </button>
+                </div>
+                <div
+                  className={`col-resizer ${resizingCol === 'location' ? 'is-active' : ''}`}
+                  onMouseDown={(e) => startResize('location', e)}
+                  onDoubleClick={(e) => resetColumnWidth('location', e)}
+                  title="Drag to resize column (Double-click to reset)"
+                />
               </th>
 
               {/* Note Column */}
-              <th scope="col" style={{ minWidth: '200px' }}>
-                <button
-                  type="button"
-                  className={`th-sort-btn ${sortConfig.field === 'note' ? 'is-active' : ''}`}
-                  onClick={() => handleSort('note')}
-                  title={getSortTitle('Note', 'note')}
-                >
-                  <span>Note</span>
-                  <SortIndicator active={sortConfig.field === 'note'} direction={sortConfig.direction} />
-                </button>
+              <th scope="col" className="th-resizable">
+                <div className="th-content">
+                  <button
+                    type="button"
+                    className={`th-sort-btn ${sortConfig.field === 'note' ? 'is-active' : ''}`}
+                    onClick={() => handleSort('note')}
+                    title={getSortTitle('Note', 'note')}
+                  >
+                    <span>Note</span>
+                    <SortIndicator active={sortConfig.field === 'note'} direction={sortConfig.direction} />
+                  </button>
+                </div>
+                <div
+                  className={`col-resizer ${resizingCol === 'note' ? 'is-active' : ''}`}
+                  onMouseDown={(e) => startResize('note', e)}
+                  onDoubleClick={(e) => resetColumnWidth('note', e)}
+                  title="Drag to resize column (Double-click to reset)"
+                />
               </th>
 
-              {/* Actions Column (Non-sortable) */}
-              <th scope="col" style={{ width: '130px', textAlign: 'right' }}>
-                <span>Actions</span>
+              {/* ACTION Column (Fixed & Center-aligned) */}
+              <th scope="col" className="th-actions">
+                <div className="th-content" style={{ justifyContent: 'center' }}>
+                  <span>ACTION</span>
+                </div>
               </th>
             </tr>
           </thead>
@@ -340,7 +525,9 @@ export const WorkItemsTable: React.FC<WorkItemsTableProps> = ({
                     <div className="name-cell">
                       <div className="avatar-chip">{avatarChar}</div>
                       <div className="name-text-group">
-                        <span className="item-title">{item.Title || '(Untitled)'}</span>
+                        <span className="item-title" title={item.Title || '(Untitled)'}>
+                          {item.Title || '(Untitled)'}
+                        </span>
                       </div>
                     </div>
                   </td>
@@ -396,7 +583,7 @@ export const WorkItemsTable: React.FC<WorkItemsTableProps> = ({
 
                   {/* Location */}
                   <td>
-                    <div className="location-pill">
+                    <div className="location-pill" title={item.field_3 || 'No location'}>
                       <svg
                         className="location-icon"
                         width="13"
@@ -417,14 +604,17 @@ export const WorkItemsTable: React.FC<WorkItemsTableProps> = ({
 
                   {/* note */}
                   <td>
-                    <span className={`note-text ${!item.field_4 ? 'is-empty' : ''}`}>
+                    <span
+                      className={`note-text ${!item.field_4 ? 'is-empty' : ''}`}
+                      title={item.field_4 || undefined}
+                    >
                       {item.field_4 || 'No notes provided'}
                     </span>
                   </td>
 
-                  {/* Actions: Edit & Delete */}
-                  <td>
-                    <div className="row-actions">
+                  {/* ACTION: Edit & Delete (Fixed & Center-aligned) */}
+                  <td className="td-actions">
+                    <div className="row-actions" style={{ justifyContent: 'center' }}>
                       <button
                         type="button"
                         className="btn-row-action btn-edit"
@@ -496,7 +686,7 @@ export const WorkItemsTable: React.FC<WorkItemsTableProps> = ({
       {/* Table Footer info */}
       <div className="table-footer">
         <span className="footer-meta">
-          Showing {processedItems.length} of {items.length} total entries • Sorted by {sortConfig.field} ({sortConfig.direction})
+          Showing {processedItems.length} of {items.length} total entries • Drag header borders to customize column width
         </span>
         <span className="footer-brand">SharePoint List Integration</span>
       </div>
